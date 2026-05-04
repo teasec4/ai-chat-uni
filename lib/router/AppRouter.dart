@@ -1,4 +1,5 @@
-import 'package:chatgptclone/presentation/home/home_page.dart';
+import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
+
 import 'package:go_router/go_router.dart';
 
 class AppRouter {
@@ -7,7 +8,7 @@ class AppRouter {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomePage(),
+        builder: (context, state) => ResponsiveShell(),
       )
     ]
   );
