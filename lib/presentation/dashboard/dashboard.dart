@@ -50,6 +50,7 @@ class _DashboardState extends State<Dashboard> {
                     mainScreenVM.setIndex(index);
                     Navigator.of(context).pop();
                   },
+                  selectedIndex: mainScreenVM.index,
                 ),
               ),
             ],
@@ -89,6 +90,7 @@ class _DashboardState extends State<Dashboard> {
                               print(index);
                               mainScreenVM.setIndex(index);
                             },
+                            selectedIndex: mainScreenVM.index,
                           ),
                   ),
 
