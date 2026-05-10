@@ -2,6 +2,7 @@ import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
 import 'package:chatgptclone/presentation/dashboard/widgets/app_drawer.dart';
 import 'package:chatgptclone/presentation/dashboard/widgets/desctop_sidebar.dart';
 import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
+import 'package:chatgptclone/presentation/settings/settings_screen.dart';
 import 'package:chatgptclone/view_models/main_screen_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,8 +14,41 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard>
+    with SingleTickerProviderStateMixin {
   bool _isSidebarCollapsed = false;
+  bool _isShowSettings = false;
+
+  late final AnimationController _settingsSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsSlide = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+  }
+
+  @override
+  void dispose() {
+    _settingsSlide.dispose();
+    super.dispose();
+  }
+
+  void _toggleSettings() {
+    if (_isShowSettings) {
+      _settingsSlide.reverse().then((_) {
+        if (mounted) setState(() => _isShowSettings = false);
+      });
+    } else {
+      setState(() => _isShowSettings = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _settingsSlide.forward();
+      });
+    }
+  }
+
   final items = MockListItems();
 
   @override
@@ -49,25 +83,49 @@ class _DashboardState extends State<Dashboard> {
                 Navigator.of(context).pop();
               },
             ),
-      body: Row(
+      body: Stack(
         children: [
-          if (isBigScreen)
-            DesctopSidebar(
-              isCollapsed: _isSidebarCollapsed,
-              selectedIndex: mainScreenVM.index,
-              onCollapseTap: () {
-                setState(() {
-                  _isSidebarCollapsed = !_isSidebarCollapsed;
-                });
-              },
-              items: items.items,
-            ),
-          Expanded(
-            child: Container(
-              color: Colors.grey[100],
-              child: MainScreen(index: mainScreenVM.index),
-            ),
+          Row(
+            children: [
+              if (isBigScreen)
+                DesctopSidebar(
+                  isCollapsed: _isSidebarCollapsed,
+                  selectedIndex: mainScreenVM.index,
+                  onCollapseTap: () {
+                    setState(() {
+                      _isSidebarCollapsed = !_isSidebarCollapsed;
+                    });
+                  },
+                  onSettingsTap: _toggleSettings,
+                  items: items.items,
+                ),
+              Expanded(
+                child: Container(
+                  color: Colors.grey[100],
+                  child: MainScreen(index: mainScreenVM.index),
+                ),
+              ),
+            ],
           ),
+
+          if (_isShowSettings)
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 400,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(_settingsSlide),
+                child: SettingsScreen(
+                  onClose: () {
+                    _toggleSettings();
+                  },
+                ),
+              ),
+            ),
         ],
       ),
     );

@@ -8,8 +8,12 @@ class DesctopSidebar extends StatelessWidget {
   final bool isCollapsed;
   final int selectedIndex;
   final Function() onCollapseTap;
+  final Function() onSettingsTap;
+  
   final List<String> items;
-  const DesctopSidebar({super.key, required this.isCollapsed, required this.selectedIndex, required this.onCollapseTap, required this.items});
+  
+  const DesctopSidebar({super.key, required this.isCollapsed, required this.selectedIndex, required this.onCollapseTap, required this.onSettingsTap, required this.items});
+
   @override
   Widget build(BuildContext context) {
     final mainScreenVM = Provider.of<MainScreenViewModel>(context);
@@ -42,9 +46,7 @@ class DesctopSidebar extends StatelessWidget {
 
           IconButton(
             icon: Icon(Icons.settings),
-            onPressed: () {
-              GoRouter.of(context).push("/settings");
-            },
+            onPressed: onSettingsTap,
           ),
         ],
       ),

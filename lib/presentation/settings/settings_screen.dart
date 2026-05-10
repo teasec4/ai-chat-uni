@@ -1,28 +1,18 @@
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatelessWidget {
-  SettingsScreen({super.key});
+  final VoidCallback onClose;
+  SettingsScreen({super.key, required this.onClose});
 
   final mockData = MockData();
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.grey[100],
-      ),
-      body: Container(
-        width: double.infinity,
-        color: Colors.grey[100],
-        padding: EdgeInsets.all(8),
-        child: Column(
-          children: [
-            for (var setting in mockData.settings)
-              Text(
-                setting,
-              ),
-          ],
-        )
-        
+    return Container(
+      color: Colors.grey[200],
+      padding: EdgeInsets.all(8),
+      width: double.infinity,
+      child: Center(
+        child: Text("Setting"),
       ),
     );
   }
