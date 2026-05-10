@@ -1,4 +1,6 @@
 import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
+import 'package:chatgptclone/presentation/dashboard/widgets/app_drawer.dart';
+import 'package:chatgptclone/presentation/dashboard/widgets/desctop_sidebar.dart';
 import 'package:chatgptclone/presentation/dashboard/widgets/list_items.dart';
 import 'package:chatgptclone/view_models/main_screen_view_model.dart';
 import 'package:flutter/material.dart';
@@ -37,71 +39,27 @@ class _DashboardState extends State<Dashboard> {
                 },
               ),
             ),
-      drawer: Drawer(
-        child: Container(
-          color: Colors.grey[200],
-          child: Column(
-            children: [
-              Expanded(
-                child: ListItems(
-                  items: widget.items.items,
-                  onClick: (index) {
-                    print(index);
-                    mainScreenVM.setIndex(index);
-                    Navigator.of(context).pop();
-                  },
-                  selectedIndex: mainScreenVM.index,
-                ),
-              ),
-            ],
-          ),
-        ),
+      drawer: AppDrawer(
+        items: widget.items.items,
+        index: mainScreenVM.index,
+        onClick: (index) {
+          mainScreenVM.setIndex(index);
+          Navigator.of(context).pop();
+        },
       ),
 
       body: Row(
         children: [
           if (widget.isBigScreen)
-            AnimatedContainer(
-              duration: Duration(milliseconds: 250),
-              width: _isDrawerOpen ? 72 : 260,
-              color: Colors.grey[200],
-              child: Column(
-                crossAxisAlignment: _isDrawerOpen
-                    ? CrossAxisAlignment.center
-                    : CrossAxisAlignment.end,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.menu, color: Colors.black),
-                    onPressed: () {
-                      setState(() {
-                        _isDrawerOpen = !_isDrawerOpen;
-                      });
-                    },
-                  ),
-
-                  SizedBox(height: 20),
-
-                  Expanded(
-                    child: _isDrawerOpen
-                        ? Container()
-                        : ListItems(
-                            items: widget.items.items,
-                            onClick: (index) {
-                              print(index);
-                              mainScreenVM.setIndex(index);
-                            },
-                            selectedIndex: mainScreenVM.index,
-                          ),
-                  ),
-
-                  IconButton(
-                    icon: Icon(Icons.settings),
-                    onPressed: () {
-                      GoRouter.of(context).push("/settings");
-                    },
-                  ),
-                ],
-              ),
+            DesctopSidebar(
+              isCollapsed: _isDrawerOpen,
+              selectedIndex: mainScreenVM.index,
+              onCollapseTap: () {
+                setState(() {
+                  _isDrawerOpen = !_isDrawerOpen;
+                });
+              },
+              items: widget.items.items,
             ),
 
           Expanded(
