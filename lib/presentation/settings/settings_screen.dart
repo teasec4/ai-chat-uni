@@ -8,19 +8,21 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.grey[200],
+        backgroundColor: Colors.grey[100],
       ),
       body: Container(
+        width: double.infinity,
+        color: Colors.grey[100],
         padding: EdgeInsets.all(8),
-        child: ListView.builder(
-          itemCount: mockData.settings.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(mockData.settings[index]),
-              
-            );
-          },
-        ),
+        child: Column(
+          children: [
+            for (var setting in mockData.settings)
+              Text(
+                setting,
+              ),
+          ],
+        )
+        
       ),
     );
   }

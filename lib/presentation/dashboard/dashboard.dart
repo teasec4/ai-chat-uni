@@ -1,6 +1,9 @@
+import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
 import 'package:chatgptclone/presentation/dashboard/widgets/list_items.dart';
+import 'package:chatgptclone/view_models/main_screen_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 class Dashboard extends StatefulWidget {
   final bool isBigScreen;
@@ -17,11 +20,12 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final mainScreenVM = Provider.of<MainScreenViewModel>(context);
     return Scaffold(
       appBar: widget.isBigScreen
           ? null
           : AppBar(
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Colors.grey[100],
               leading: Builder(
                 builder: (context) {
                   return IconButton(
@@ -43,6 +47,8 @@ class _DashboardState extends State<Dashboard> {
                   items: widget.items.items,
                   onClick: (index) {
                     print(index);
+                    mainScreenVM.setIndex(index);
+                    Navigator.of(context).pop();
                   },
                 ),
               ),
@@ -59,7 +65,9 @@ class _DashboardState extends State<Dashboard> {
               width: _isDrawerOpen ? 72 : 260,
               color: Colors.grey[200],
               child: Column(
-                crossAxisAlignment: _isDrawerOpen ? .center : .end,
+                crossAxisAlignment: _isDrawerOpen
+                    ? CrossAxisAlignment.center
+                    : CrossAxisAlignment.end,
                 children: [
                   IconButton(
                     icon: Icon(Icons.menu, color: Colors.black),
@@ -79,6 +87,7 @@ class _DashboardState extends State<Dashboard> {
                             items: widget.items.items,
                             onClick: (index) {
                               print(index);
+                              mainScreenVM.setIndex(index);
                             },
                           ),
                   ),
@@ -93,7 +102,12 @@ class _DashboardState extends State<Dashboard> {
               ),
             ),
 
-          Expanded(child: Container(color: Colors.grey[100])),
+          Expanded(
+            child: Container(
+              color: Colors.grey[100],
+              child: MainScreen(index: mainScreenVM.index),
+            ),
+          ),
         ],
       ),
     );
