@@ -17,13 +17,13 @@ class MainScreen extends StatelessWidget {
   Widget _buildScreen(int index) {
     switch(index){
       case 0:
-        return FirstScreen();
+        return const FirstScreen(key: ValueKey(0));
       case 1:
-        return SecondScreen();
+        return const SecondScreen(key: ValueKey(1));
       case 2:
-        return ThirdScreen();
+        return const ThirdScreen(key: ValueKey(2));
       default:
-        return  SizedBox.shrink();
+        return const SizedBox.shrink(key: ValueKey(-1));
     }
   }
 }

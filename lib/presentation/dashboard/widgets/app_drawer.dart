@@ -8,7 +8,7 @@ class AppDrawer extends StatelessWidget {
   final int index;
   final Function(int) onClick;
 
-  AppDrawer({required this.items, required this.index, required this.onClick});
+  const AppDrawer({super.key, required this.items, required this.index, required this.onClick});
 
   @override
   Widget build(BuildContext context) {

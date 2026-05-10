@@ -18,7 +18,7 @@ class DesctopSidebar extends StatelessWidget {
       width: isCollapsed ? 40 : 260,
       color: Colors.grey[200],
       child: Column(
-        crossAxisAlignment: .start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           IconButton(
             icon: Icon(Icons.menu),

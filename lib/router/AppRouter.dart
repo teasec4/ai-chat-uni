@@ -1,5 +1,4 @@
 import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
-import 'package:chatgptclone/presentation/settings/settings_screen.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -11,10 +10,7 @@ class AppRouter {
         path: '/',
         builder: (context, state) => ResponsiveShell(),
       ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => SettingsScreen(),
-      )
+      
     ]
   );
 }

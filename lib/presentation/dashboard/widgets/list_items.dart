@@ -22,13 +22,11 @@ class ListItems extends StatelessWidget {
         return ListTile(
           title: Text(items[index]),
           selected: isSelected,
-          selectedColor: Colors.blue[300],
+          selectedColor: Colors.blue,
+          selectedTileColor: Colors.blue.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          trailing: isSelected
-          ? Icon(Icons.circle, size: 8, color: Colors.blue)
-          : null,
           onTap: () {
             onClick(index);
           },
