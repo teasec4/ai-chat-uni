@@ -1,6 +1,5 @@
 import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
 import 'package:chatgptclone/presentation/dashboard/widgets/app_drawer.dart';
-import 'package:chatgptclone/presentation/dashboard/widgets/desktop_sidebar.dart';
 import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
 import 'package:chatgptclone/presentation/settings/settings_screen.dart';
 import 'package:chatgptclone/view_models/main_screen_view_model.dart';
@@ -49,7 +48,23 @@ class _DashboardState extends State<Dashboard>
     }
   }
 
-  final items = MockListItems();
+  static const _destinations = <NavigationRailDestination>[
+    NavigationRailDestination(
+      icon: Icon(Icons.chat_outlined),
+      selectedIcon: Icon(Icons.chat),
+      label: Text('Chats'),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.history_outlined),
+      selectedIcon: Icon(Icons.history),
+      label: Text('History'),
+    ),
+    NavigationRailDestination(
+      icon: Icon(Icons.person_outline),
+      selectedIcon: Icon(Icons.person),
+      label: Text('Profile'),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +91,7 @@ class _DashboardState extends State<Dashboard>
       drawer: isBigScreen
           ? null
           : AppDrawer(
-              items: items.items,
+              items: const ['Chats', 'History', 'Profile'],
               index: mainScreenVM.index,
               screenSize: screenSize,
               onClick: (index) {
@@ -89,16 +104,41 @@ class _DashboardState extends State<Dashboard>
           Row(
             children: [
               if (isBigScreen)
-                DesktopSidebar(
-                  isCollapsed: _isSidebarCollapsed,
-                  selectedIndex: mainScreenVM.index,
-                  onCollapseTap: () {
-                    setState(() {
-                      _isSidebarCollapsed = !_isSidebarCollapsed;
-                    });
-                  },
-                  onSettingsTap: _toggleSettings,
-                  items: items.items,
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    navigationRailTheme: const NavigationRailThemeData(
+                      minWidth: 68,
+                      minExtendedWidth: 200,
+                    ),
+                  ),
+                  child: NavigationRail(
+                    extended: !_isSidebarCollapsed,
+                    selectedIndex: mainScreenVM.index,
+                    labelType: _isSidebarCollapsed
+                        ? NavigationRailLabelType.none
+                        : NavigationRailLabelType.all,
+                    groupAlignment: -1,
+                    backgroundColor: Colors.grey[200],
+                    leading: IconButton(
+                      icon: const Icon(Icons.menu),
+                      onPressed: () {
+                        setState(() {
+                          _isSidebarCollapsed = !_isSidebarCollapsed;
+                        });
+                      },
+                    ),
+                    trailing: Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: IconButton(
+                        icon: const Icon(Icons.settings),
+                        onPressed: _toggleSettings,
+                      ),
+                    ),
+                    onDestinationSelected: (index) {
+                      mainScreenVM.setIndex(index);
+                    },
+                    destinations: _destinations,
+                  ),
                 ),
               Expanded(
                 child: Container(
@@ -131,8 +171,4 @@ class _DashboardState extends State<Dashboard>
       ),
     );
   }
-}
-
-class MockListItems {
-  final List<String> items = ["Item 1", "Item 2", "Item 3"];
 }
