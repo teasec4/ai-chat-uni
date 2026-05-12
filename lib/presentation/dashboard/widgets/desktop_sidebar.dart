@@ -1,10 +1,10 @@
 import 'package:chatgptclone/presentation/dashboard/widgets/list_items.dart';
 import 'package:chatgptclone/view_models/main_screen_view_model.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:provider/provider.dart';
 
-class DesctopSidebar extends StatelessWidget {
+class DesktopSidebar extends StatelessWidget {
   final bool isCollapsed;
   final int selectedIndex;
   final Function() onCollapseTap;
@@ -12,7 +12,7 @@ class DesctopSidebar extends StatelessWidget {
   
   final List<String> items;
   
-  const DesctopSidebar({super.key, required this.isCollapsed, required this.selectedIndex, required this.onCollapseTap, required this.onSettingsTap, required this.items});
+  const DesktopSidebar({super.key, required this.isCollapsed, required this.selectedIndex, required this.onCollapseTap, required this.onSettingsTap, required this.items});
 
   @override
   Widget build(BuildContext context) {

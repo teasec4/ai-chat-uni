@@ -1,6 +1,6 @@
 import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
 import 'package:chatgptclone/presentation/dashboard/widgets/app_drawer.dart';
-import 'package:chatgptclone/presentation/dashboard/widgets/desctop_sidebar.dart';
+import 'package:chatgptclone/presentation/dashboard/widgets/desktop_sidebar.dart';
 import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
 import 'package:chatgptclone/presentation/settings/settings_screen.dart';
 import 'package:chatgptclone/view_models/main_screen_view_model.dart';
@@ -78,6 +78,7 @@ class _DashboardState extends State<Dashboard>
           : AppDrawer(
               items: items.items,
               index: mainScreenVM.index,
+              screenSize: screenSize,
               onClick: (index) {
                 mainScreenVM.setIndex(index);
                 Navigator.of(context).pop();
@@ -88,7 +89,7 @@ class _DashboardState extends State<Dashboard>
           Row(
             children: [
               if (isBigScreen)
-                DesctopSidebar(
+                DesktopSidebar(
                   isCollapsed: _isSidebarCollapsed,
                   selectedIndex: mainScreenVM.index,
                   onCollapseTap: () {
@@ -113,7 +114,7 @@ class _DashboardState extends State<Dashboard>
               right: 0,
               top: 0,
               bottom: 0,
-              width: 400,
+              width: screenSize == ScreenSize.medium ? 320 : 400,
               child: SlideTransition(
                 position: Tween<Offset>(
                   begin: Offset(1, 0),
