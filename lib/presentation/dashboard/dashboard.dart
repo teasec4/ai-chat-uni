@@ -1,8 +1,8 @@
 import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
-import 'package:chatgptclone/presentation/dashboard/widgets/app_drawer.dart';
+import 'package:chatgptclone/presentation/dashboard/widgets/chat_sidebar.dart';
 import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
 import 'package:chatgptclone/presentation/settings/settings_screen.dart';
-import 'package:chatgptclone/view_models/main_screen_view_model.dart';
+import 'package:chatgptclone/view_models/chat_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,7 +15,6 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard>
     with SingleTickerProviderStateMixin {
-  bool _isSidebarCollapsed = false;
   bool _isShowSettings = false;
 
   late final AnimationController _settingsSlide;
@@ -48,27 +47,9 @@ class _DashboardState extends State<Dashboard>
     }
   }
 
-  static const _destinations = <NavigationRailDestination>[
-    NavigationRailDestination(
-      icon: Icon(Icons.chat_outlined),
-      selectedIcon: Icon(Icons.chat),
-      label: Text('Chats'),
-    ),
-    NavigationRailDestination(
-      icon: Icon(Icons.history_outlined),
-      selectedIcon: Icon(Icons.history),
-      label: Text('History'),
-    ),
-    NavigationRailDestination(
-      icon: Icon(Icons.person_outline),
-      selectedIcon: Icon(Icons.person),
-      label: Text('Profile'),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final mainScreenVM = Provider.of<MainScreenViewModel>(context);
+    final chatVM = context.watch<ChatViewModel>();
     final screenSize = BreakpointInfo.of(context);
     final isBigScreen = screenSize != ScreenSize.compact;
 
@@ -90,60 +71,41 @@ class _DashboardState extends State<Dashboard>
             ),
       drawer: isBigScreen
           ? null
-          : AppDrawer(
-              items: const ['Chats', 'History', 'Profile'],
-              index: mainScreenVM.index,
-              screenSize: screenSize,
-              onClick: (index) {
-                mainScreenVM.setIndex(index);
-                Navigator.of(context).pop();
-              },
+          : Drawer(
+              child: ChatSidebar(
+                threads: chatVM.threads,
+                selectedThreadId: chatVM.selectedThreadId,
+                onThreadSelected: (threadId) {
+                  context.read<ChatViewModel>().selectThread(threadId);
+                  Navigator.of(context).pop();
+                },
+                onNewThread: () {
+                  context.read<ChatViewModel>().createThread();
+                  Navigator.of(context).pop();
+                },
+                onSettingsPressed: () {
+                  Navigator.of(context).pop();
+                  _toggleSettings();
+                },
+              ),
             ),
       body: Stack(
         children: [
           Row(
             children: [
               if (isBigScreen)
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    navigationRailTheme: const NavigationRailThemeData(
-                      minWidth: 68,
-                      minExtendedWidth: 200,
-                    ),
-                  ),
-                  child: NavigationRail(
-                    extended: !_isSidebarCollapsed,
-                    selectedIndex: mainScreenVM.index,
-                    labelType: _isSidebarCollapsed
-                        ? NavigationRailLabelType.none
-                        : NavigationRailLabelType.all,
-                    groupAlignment: -1,
-                    backgroundColor: Colors.grey[200],
-                    leading: IconButton(
-                      icon: const Icon(Icons.menu),
-                      onPressed: () {
-                        setState(() {
-                          _isSidebarCollapsed = !_isSidebarCollapsed;
-                        });
-                      },
-                    ),
-                    trailing: Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: IconButton(
-                        icon: const Icon(Icons.settings),
-                        onPressed: _toggleSettings,
-                      ),
-                    ),
-                    onDestinationSelected: (index) {
-                      mainScreenVM.setIndex(index);
-                    },
-                    destinations: _destinations,
-                  ),
+                ChatSidebar(
+                  width: screenSize == ScreenSize.medium ? 280 : 304,
+                  threads: chatVM.threads,
+                  selectedThreadId: chatVM.selectedThreadId,
+                  onThreadSelected: context.read<ChatViewModel>().selectThread,
+                  onNewThread: context.read<ChatViewModel>().createThread,
+                  onSettingsPressed: _toggleSettings,
                 ),
               Expanded(
-                child: Container(
-                  color: Colors.grey[100],
-                  child: MainScreen(index: mainScreenVM.index),
+                child: MainScreen(
+                  thread: chatVM.selectedThread,
+                  onCreateThread: context.read<ChatViewModel>().createThread,
                 ),
               ),
             ],
