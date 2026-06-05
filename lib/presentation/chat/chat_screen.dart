@@ -15,6 +15,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen>
     with SingleTickerProviderStateMixin {
+  bool _isSidebarCollapsed = false;
   bool _isShowSettings = false;
 
   late final AnimationController _settingsSlide;
@@ -95,12 +96,22 @@ class _ChatScreenState extends State<ChatScreen>
             children: [
               if (isBigScreen)
                 ChatSidebar(
-                  width: screenSize == ScreenSize.medium ? 280 : 304,
+                  width: _isSidebarCollapsed
+                      ? 64
+                      : screenSize == ScreenSize.medium
+                      ? 280
+                      : 304,
+                  isCollapsed: _isSidebarCollapsed,
                   threads: chatVM.threads,
                   selectedThreadId: chatVM.selectedThreadId,
                   onThreadSelected: context.read<ChatViewModel>().selectThread,
                   onNewThread: context.read<ChatViewModel>().createThread,
                   onSettingsPressed: _toggleSettings,
+                  onToggleCollapsed: () {
+                    setState(() {
+                      _isSidebarCollapsed = !_isSidebarCollapsed;
+                    });
+                  },
                 ),
               Expanded(
                 child: ConversationView(

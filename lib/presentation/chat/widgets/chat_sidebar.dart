@@ -8,6 +8,8 @@ class ChatSidebar extends StatelessWidget {
   final VoidCallback onNewThread;
   final VoidCallback onSettingsPressed;
   final double? width;
+  final bool isCollapsed;
+  final VoidCallback? onToggleCollapsed;
 
   const ChatSidebar({
     super.key,
@@ -17,10 +19,33 @@ class ChatSidebar extends StatelessWidget {
     required this.onNewThread,
     required this.onSettingsPressed,
     this.width,
+    this.isCollapsed = false,
+    this.onToggleCollapsed,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (isCollapsed) {
+      return _SidebarFrame(
+        width: width,
+        child: _CollapsedSidebarContent(
+          onToggleCollapsed: onToggleCollapsed,
+          onNewThread: onNewThread,
+          onSettingsPressed: onSettingsPressed,
+        ),
+      );
+    }
+
+    final toggleButton = onToggleCollapsed == null
+        ? const SizedBox.shrink()
+        : Tooltip(
+            message: 'Collapse sidebar',
+            child: IconButton(
+              icon: const Icon(Icons.keyboard_double_arrow_left, size: 20),
+              onPressed: onToggleCollapsed,
+            ),
+          );
+
     final content = ColoredBox(
       color: const Color(0xFFF3F4F6),
       child: SafeArea(
@@ -30,19 +55,8 @@ class ChatSidebar extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               child: Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'ChatGPT Clone',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
+                  toggleButton,
+                  const Spacer(),
                   Tooltip(
                     message: 'New chat',
                     child: IconButton(
@@ -53,32 +67,13 @@ class ChatSidebar extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('New chat'),
-                  onPressed: onNewThread,
-                  style: FilledButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                 children: _buildThreadSections(context),
               ),
             ),
-            const Divider(height: 1),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
               child: _SidebarAction(
@@ -92,11 +87,7 @@ class ChatSidebar extends StatelessWidget {
       ),
     );
 
-    if (width == null) {
-      return content;
-    }
-
-    return SizedBox(width: width, child: content);
+    return _SidebarFrame(width: width, child: content);
   }
 
   List<Widget> _buildThreadSections(BuildContext context) {
@@ -125,6 +116,78 @@ class ChatSidebar extends StatelessWidget {
           ),
       ],
     ];
+  }
+}
+
+class _SidebarFrame extends StatelessWidget {
+  final double? width;
+  final Widget child;
+
+  const _SidebarFrame({required this.width, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (width == null) return child;
+
+    return SizedBox(width: width, child: child);
+  }
+}
+
+class _CollapsedSidebarContent extends StatelessWidget {
+  final VoidCallback? onToggleCollapsed;
+  final VoidCallback onNewThread;
+  final VoidCallback onSettingsPressed;
+
+  const _CollapsedSidebarContent({
+    required this.onToggleCollapsed,
+    required this.onNewThread,
+    required this.onSettingsPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFFF3F4F6),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+              child: Column(
+                children: [
+                  Tooltip(
+                    message: 'Expand sidebar',
+                    child: IconButton(
+                      icon: const Icon(Icons.keyboard_double_arrow_right),
+                      onPressed: onToggleCollapsed,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Tooltip(
+                    message: 'New chat',
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_square, size: 20),
+                      onPressed: onNewThread,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+              child: Tooltip(
+                message: 'Settings',
+                child: IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: onSettingsPressed,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
