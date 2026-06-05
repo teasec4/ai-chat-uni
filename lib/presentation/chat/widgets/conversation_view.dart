@@ -1,11 +1,11 @@
 import 'package:chatgptclone/view_models/chat_view_model.dart';
 import 'package:flutter/material.dart';
 
-class MainScreen extends StatelessWidget {
+class ConversationView extends StatelessWidget {
   final ChatThread? thread;
   final VoidCallback onCreateThread;
 
-  const MainScreen({
+  const ConversationView({
     super.key,
     required this.thread,
     required this.onCreateThread,

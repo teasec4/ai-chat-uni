@@ -1,4 +1,4 @@
-import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
+import 'package:chatgptclone/presentation/shell/responsive_shell.dart';
 import 'package:go_router/go_router.dart';
 
 class AppRouter {

@@ -30,11 +30,12 @@ class ChatThread {
 }
 
 class ChatViewModel extends ChangeNotifier {
+  // mock data for test
   final List<ChatThread> _threads = [
     const ChatThread(
       id: 'desktop-sidebar',
-      title: 'Desktop sidebar design',
-      preview: 'Turn the rail into a real chat list.',
+      title: 'Test Thread',
+      preview: 'Use a real chat list in the sidebar.',
       sectionLabel: 'Today',
       updatedLabel: 'Now',
       messages: [
@@ -48,61 +49,7 @@ class ChatViewModel extends ChangeNotifier {
               'Use a custom sidebar for dynamic chats, and keep the main area focused on the selected thread.',
         ),
       ],
-    ),
-    const ChatThread(
-      id: 'ai-memory',
-      title: 'AI memory sketch',
-      preview: 'Ideas for storing chat context locally.',
-      sectionLabel: 'Today',
-      updatedLabel: '12m',
-      messages: [
-        ChatMessage(
-          role: ChatMessageRole.user,
-          text: 'How should we store local chat history later?',
-        ),
-        ChatMessage(
-          role: ChatMessageRole.assistant,
-          text:
-              'Start with a thread model, then persist messages once the chat flow is stable.',
-        ),
-      ],
-    ),
-    const ChatThread(
-      id: 'flutter-layout',
-      title: 'Flutter layout notes',
-      preview: 'Responsive shell, desktop first.',
-      sectionLabel: 'Yesterday',
-      updatedLabel: '1d',
-      messages: [
-        ChatMessage(
-          role: ChatMessageRole.user,
-          text: 'What should the desktop layout look like?',
-        ),
-        ChatMessage(
-          role: ChatMessageRole.assistant,
-          text:
-              'A fixed sidebar plus a flexible conversation pane keeps the UI predictable.',
-        ),
-      ],
-    ),
-    const ChatThread(
-      id: 'profile-settings',
-      title: 'Profile and settings',
-      preview: 'Keep settings as a side panel for now.',
-      sectionLabel: 'Previous 7 days',
-      updatedLabel: '4d',
-      messages: [
-        ChatMessage(
-          role: ChatMessageRole.user,
-          text: 'Where should settings live?',
-        ),
-        ChatMessage(
-          role: ChatMessageRole.assistant,
-          text:
-              'Put it at the bottom of the sidebar and open the existing settings panel from there.',
-        ),
-      ],
-    ),
+    ),  
   ];
 
   String? _selectedThreadId;

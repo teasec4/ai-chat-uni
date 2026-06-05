@@ -1,19 +1,19 @@
-import 'package:chatgptclone/presentation/dashboard/main/main_screen.dart';
-import 'package:chatgptclone/presentation/dashboard/widgets/chat_sidebar.dart';
-import 'package:chatgptclone/presentation/responsiveshell/responsiveshell.dart';
-import 'package:chatgptclone/presentation/settings/settings_screen.dart';
+import 'package:chatgptclone/presentation/chat/widgets/chat_sidebar.dart';
+import 'package:chatgptclone/presentation/chat/widgets/conversation_view.dart';
+import 'package:chatgptclone/presentation/settings/settings_panel.dart';
+import 'package:chatgptclone/presentation/shell/breakpoint_info.dart';
 import 'package:chatgptclone/view_models/chat_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
 
   @override
-  State<Dashboard> createState() => _DashboardState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _DashboardState extends State<Dashboard>
+class _ChatScreenState extends State<ChatScreen>
     with SingleTickerProviderStateMixin {
   bool _isShowSettings = false;
 
@@ -103,7 +103,7 @@ class _DashboardState extends State<Dashboard>
                   onSettingsPressed: _toggleSettings,
                 ),
               Expanded(
-                child: MainScreen(
+                child: ConversationView(
                   thread: chatVM.selectedThread,
                   onCreateThread: context.read<ChatViewModel>().createThread,
                 ),
@@ -122,7 +122,7 @@ class _DashboardState extends State<Dashboard>
                   begin: Offset(1, 0),
                   end: Offset.zero,
                 ).animate(_settingsSlide),
-                child: SettingsScreen(
+                child: SettingsPanel(
                   onClose: () {
                     _toggleSettings();
                   },
