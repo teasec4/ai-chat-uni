@@ -48,6 +48,103 @@ class _ChatScreenState extends State<ChatScreen>
     }
   }
 
+  Future<void> _createThread({bool closeDrawer = false}) async {
+    if (closeDrawer) Navigator.of(context).pop();
+
+    try {
+      await context.read<ChatViewModel>().createThread();
+      if (!mounted) return;
+      _showSuccess('Chat created');
+    } catch (error) {
+      if (!mounted) return;
+
+      _showError('Could not create chat', error);
+    }
+  }
+
+  Future<void> _selectThread(
+    String threadId, {
+    bool closeDrawer = false,
+  }) async {
+    if (closeDrawer) Navigator.of(context).pop();
+
+    try {
+      await context.read<ChatViewModel>().selectThread(threadId);
+    } catch (error) {
+      if (!mounted) return;
+
+      _showError('Could not load chat history', error);
+    }
+  }
+
+  Future<void> _sendMessage(String message) async {
+    try {
+      await context.read<ChatViewModel>().sendMessage(message);
+      if (!mounted) return;
+      _showSuccess('Response received');
+    } catch (error) {
+      if (!mounted) return;
+
+      _showError('Could not send message', error);
+    }
+  }
+
+  void _showSuccess(String message) {
+    _showNotice(
+      icon: Icons.check_circle_outline,
+      message: message,
+      backgroundColor: const Color(0xFF166534),
+    );
+  }
+
+  void _showError(String message, Object error) {
+    _showNotice(
+      icon: Icons.error_outline,
+      message: '$message: ${_readableError(error)}',
+      backgroundColor: const Color(0xFFB91C1C),
+    );
+  }
+
+  void _showNotice({
+    required IconData icon,
+    required String message,
+    required Color backgroundColor,
+  }) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: backgroundColor,
+          duration: const Duration(seconds: 3),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          content: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+  }
+
+  String _readableError(Object error) {
+    final message = error.toString();
+    return message.replaceFirst(RegExp(r'^Exception: '), '');
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatVM = context.watch<ChatViewModel>();
@@ -77,12 +174,10 @@ class _ChatScreenState extends State<ChatScreen>
                 threads: chatVM.threads,
                 selectedThreadId: chatVM.selectedThreadId,
                 onThreadSelected: (threadId) {
-                  context.read<ChatViewModel>().selectThread(threadId);
-                  Navigator.of(context).pop();
+                  _selectThread(threadId, closeDrawer: true);
                 },
                 onNewThread: () {
-                  context.read<ChatViewModel>().createThread();
-                  Navigator.of(context).pop();
+                  _createThread(closeDrawer: true);
                 },
                 onSettingsPressed: () {
                   Navigator.of(context).pop();
@@ -104,8 +199,8 @@ class _ChatScreenState extends State<ChatScreen>
                   isCollapsed: _isSidebarCollapsed,
                   threads: chatVM.threads,
                   selectedThreadId: chatVM.selectedThreadId,
-                  onThreadSelected: context.read<ChatViewModel>().selectThread,
-                  onNewThread: context.read<ChatViewModel>().createThread,
+                  onThreadSelected: _selectThread,
+                  onNewThread: _createThread,
                   onSettingsPressed: _toggleSettings,
                   onToggleCollapsed: () {
                     setState(() {
@@ -116,7 +211,10 @@ class _ChatScreenState extends State<ChatScreen>
               Expanded(
                 child: ConversationView(
                   thread: chatVM.selectedThread,
-                  onCreateThread: context.read<ChatViewModel>().createThread,
+                  isLoadingMessages: chatVM.isLoadingMessages,
+                  isWaitingForResponse: chatVM.isWaitingForResponse,
+                  onCreateThread: _createThread,
+                  onSendMessage: _sendMessage,
                 ),
               ),
             ],

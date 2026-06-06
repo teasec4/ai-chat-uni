@@ -3,21 +3,27 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ChatCompletion {
-  final String message;
+  final String? sessionId;
+  final String? message;
 
-  const ChatCompletion({required this.message});
+  const ChatCompletion({this.sessionId, this.message});
 
   Map<String, dynamic> toJson() {
-    return {'message': message};
+    return {
+      if (sessionId != null) 'sessionId': sessionId,
+      if (message != null) 'message': message,
+    };
   }
 }
 
 class ChatCompletionResponse {
+  final String sessionId;
   final String answer;
   final int iterations;
   final String stoppedBy;
 
   const ChatCompletionResponse({
+    required this.sessionId,
     required this.answer,
     required this.iterations,
     required this.stoppedBy,
@@ -25,32 +31,40 @@ class ChatCompletionResponse {
 
   factory ChatCompletionResponse.fromJson(Map<String, dynamic> json) {
     return ChatCompletionResponse(
-      answer: _readString(json, const ['answer', 'text', 'content', 'message']),
+      sessionId: _readString(json, const ['sessionId']),
+      answer: _readString(json, const ['answer']),
       iterations: json['iterations'] is int ? json['iterations'] as int : 0,
-      stoppedBy: _tryReadString(json, const ['stoppedBy', 'stopReason']) ?? '',
+      stoppedBy: _readString(json, const ['stoppedBy']),
     );
   }
 }
 
 class ChatSessionResponse {
+  final String id;
   final String sessionId;
-  final String? title;
-  final String? preview;
-  final String? updatedLabel;
+  final String? createdAt;
+  final String? updatedAt;
+  final int messageCount;
 
   const ChatSessionResponse({
+    required this.id,
     required this.sessionId,
-    this.title,
-    this.preview,
-    this.updatedLabel,
+    this.createdAt,
+    this.updatedAt,
+    this.messageCount = 0,
   });
 
   factory ChatSessionResponse.fromJson(Map<String, dynamic> json) {
+    final id = _readString(json, const ['id', 'sessionId']);
+
     return ChatSessionResponse(
-      sessionId: _readString(json, const ['sessionId', 'id']),
-      title: _tryReadString(json, const ['title', 'name']),
-      preview: _tryReadString(json, const ['preview', 'lastMessage']),
-      updatedLabel: _tryReadString(json, const ['updatedLabel', 'updatedAt']),
+      id: id,
+      sessionId: _tryReadString(json, const ['sessionId']) ?? id,
+      createdAt: _tryReadString(json, const ['createdAt']),
+      updatedAt: _tryReadString(json, const ['updatedAt']),
+      messageCount: json['messageCount'] is int
+          ? json['messageCount'] as int
+          : 0,
     );
   }
 }
@@ -63,8 +77,8 @@ class ChatMessageResponse {
 
   factory ChatMessageResponse.fromJson(Map<String, dynamic> json) {
     return ChatMessageResponse(
-      role: _readString(json, const ['role', 'sender']),
-      text: _readString(json, const ['text', 'content', 'message']),
+      role: _readString(json, const ['role']),
+      text: _readString(json, const ['content', 'text']),
     );
   }
 }
@@ -95,27 +109,6 @@ class ChatCompletionService {
     }
   }
 
-  Future<ChatCompletionResponse> sendMessage({
-    required String sessionId,
-    required String message,
-  }) async {
-    try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/sessions/$sessionId/messages'),
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'message': message}),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return _readCompletionResponse(jsonDecode(response.body));
-      } else {
-        throw Exception('Failed to send message: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Failed to send message: $e');
-    }
-  }
-
   Future<ChatSessionResponse> createChat() async {
     try {
       final response = await _client.post(
@@ -142,8 +135,11 @@ class ChatCompletionService {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final sessionsJson = _readList(decoded, const ['sessions', 'data']);
-        return sessionsJson
+        if (decoded is! List) {
+          throw const FormatException('Expected a sessions list');
+        }
+
+        return decoded
             .map(
               (session) =>
                   ChatSessionResponse.fromJson(session as Map<String, dynamic>),
@@ -166,7 +162,15 @@ class ChatCompletionService {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        final messagesJson = _readList(decoded, const ['messages', 'history']);
+        if (decoded is! Map<String, dynamic>) {
+          throw const FormatException('Expected a session object');
+        }
+
+        final messagesJson = decoded['messages'];
+        if (messagesJson is! List) {
+          throw const FormatException('Expected messages list');
+        }
+
         return messagesJson
             .map(
               (message) =>
@@ -180,28 +184,6 @@ class ChatCompletionService {
       throw Exception('Failed to load chat history: $e');
     }
   }
-}
-
-ChatCompletionResponse _readCompletionResponse(dynamic decoded) {
-  if (decoded is Map<String, dynamic>) {
-    final message = decoded['message'];
-    if (message is Map<String, dynamic>) {
-      return ChatCompletionResponse(
-        answer: ChatMessageResponse.fromJson(message).text,
-        iterations: 0,
-        stoppedBy: '',
-      );
-    }
-
-    final data = decoded['data'];
-    if (data is Map<String, dynamic>) {
-      return ChatCompletionResponse.fromJson(data);
-    }
-
-    return ChatCompletionResponse.fromJson(decoded);
-  }
-
-  throw const FormatException('Expected a chat completion response object');
 }
 
 String _readString(Map<String, dynamic> json, List<String> keys) {
@@ -220,19 +202,4 @@ String? _tryReadString(Map<String, dynamic> json, List<String> keys) {
   }
 
   return null;
-}
-
-List<dynamic> _readList(dynamic decoded, List<String> wrapperKeys) {
-  if (decoded is List) return decoded;
-
-  if (decoded is Map<String, dynamic>) {
-    for (final key in wrapperKeys) {
-      final value = decoded[key];
-      if (value is List) return value;
-    }
-  }
-
-  throw FormatException(
-    'Expected a list or a response with ${wrapperKeys.join(', ')}',
-  );
 }

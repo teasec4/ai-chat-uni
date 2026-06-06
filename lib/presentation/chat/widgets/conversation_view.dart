@@ -3,12 +3,18 @@ import 'package:flutter/material.dart';
 
 class ConversationView extends StatelessWidget {
   final ChatThread? thread;
+  final bool isLoadingMessages;
+  final bool isWaitingForResponse;
   final VoidCallback onCreateThread;
+  final ValueChanged<String> onSendMessage;
 
   const ConversationView({
     super.key,
     required this.thread,
+    this.isLoadingMessages = false,
+    this.isWaitingForResponse = false,
     required this.onCreateThread,
+    required this.onSendMessage,
   });
 
   @override
@@ -16,7 +22,18 @@ class ConversationView extends StatelessWidget {
     final activeThread = thread;
 
     if (activeThread == null) {
-      return _EmptyConversation(onCreateThread: onCreateThread);
+      return ColoredBox(
+        color: const Color(0xFFF7F7F8),
+        child: Column(
+          children: [
+            Expanded(child: _EmptyConversation(onCreateThread: onCreateThread)),
+            _Composer(
+              isWaitingForResponse: isWaitingForResponse,
+              onSendMessage: onSendMessage,
+            ),
+          ],
+        ),
+      );
     }
 
     return ColoredBox(
@@ -29,14 +46,22 @@ class ConversationView extends StatelessWidget {
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 860),
-                child: activeThread.messages.isEmpty
+                child: isLoadingMessages
+                    ? const _LoadingMessages()
+                    : activeThread.messages.isEmpty && !isWaitingForResponse
                     ? const _NoMessages()
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-                        itemCount: activeThread.messages.length,
+                        itemCount:
+                            activeThread.messages.length +
+                            (isWaitingForResponse ? 1 : 0),
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 14),
                         itemBuilder: (context, index) {
+                          if (index == activeThread.messages.length) {
+                            return const _AssistantThinkingBubble();
+                          }
+
                           return _MessageBubble(
                             message: activeThread.messages[index],
                           );
@@ -45,7 +70,10 @@ class ConversationView extends StatelessWidget {
               ),
             ),
           ),
-          const _Composer(),
+          _Composer(
+            isWaitingForResponse: isWaitingForResponse,
+            onSendMessage: onSendMessage,
+          ),
         ],
       ),
     );
@@ -131,11 +159,53 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
-class _Composer extends StatelessWidget {
-  const _Composer();
+class _Composer extends StatefulWidget {
+  final bool isWaitingForResponse;
+  final ValueChanged<String> onSendMessage;
+
+  const _Composer({
+    required this.isWaitingForResponse,
+    required this.onSendMessage,
+  });
+
+  @override
+  State<_Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<_Composer> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_handleTextChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_handleTextChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleTextChanged() {
+    setState(() {});
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty || widget.isWaitingForResponse) return;
+
+    widget.onSendMessage(text);
+    _controller.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final canSend =
+        _controller.text.trim().isNotEmpty && !widget.isWaitingForResponse;
+
     return SafeArea(
       top: false,
       child: Container(
@@ -151,8 +221,14 @@ class _Composer extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 860),
             child: TextField(
+              controller: _controller,
+              enabled: !widget.isWaitingForResponse,
               minLines: 1,
               maxLines: 5,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) {
+                if (canSend) _submit();
+              },
               decoration: InputDecoration(
                 hintText: 'Message ChatGPT Clone',
                 filled: true,
@@ -161,7 +237,7 @@ class _Composer extends StatelessWidget {
                 suffixIcon: IconButton(
                   tooltip: 'Send',
                   icon: const Icon(Icons.arrow_upward_rounded),
-                  onPressed: () {},
+                  onPressed: canSend ? _submit : null,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -190,6 +266,43 @@ class _Composer extends StatelessWidget {
   }
 }
 
+class _AssistantThinkingBubble extends StatelessWidget {
+  const _AssistantThinkingBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          constraints: const BoxConstraints(maxWidth: 620),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+          ),
+          child: const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2.4),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoadingMessages extends StatelessWidget {
+  const _LoadingMessages();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: CircularProgressIndicator());
+  }
+}
+
 class _NoMessages extends StatelessWidget {
   const _NoMessages();
 
@@ -211,14 +324,11 @@ class _EmptyConversation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFFF7F7F8),
-      child: Center(
-        child: FilledButton.icon(
-          icon: const Icon(Icons.add),
-          label: const Text('New chat'),
-          onPressed: onCreateThread,
-        ),
+    return Center(
+      child: FilledButton.icon(
+        icon: const Icon(Icons.add),
+        label: const Text('New chat'),
+        onPressed: onCreateThread,
       ),
     );
   }
