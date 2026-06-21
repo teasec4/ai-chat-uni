@@ -53,11 +53,8 @@ class _ChatScreenState extends State<ChatScreen>
 
     try {
       await context.read<ChatViewModel>().createThread();
-      if (!mounted) return;
-      _showSuccess('Chat created');
     } catch (error) {
       if (!mounted) return;
-
       _showError('Could not create chat', error);
     }
   }
@@ -80,21 +77,10 @@ class _ChatScreenState extends State<ChatScreen>
   Future<void> _sendMessage(String message) async {
     try {
       await context.read<ChatViewModel>().sendMessage(message);
-      if (!mounted) return;
-      _showSuccess('Response received');
     } catch (error) {
       if (!mounted) return;
-
       _showError('Could not send message', error);
     }
-  }
-
-  void _showSuccess(String message) {
-    _showNotice(
-      icon: Icons.check_circle_outline,
-      message: message,
-      backgroundColor: const Color(0xFF166534),
-    );
   }
 
   void _showError(String message, Object error) {

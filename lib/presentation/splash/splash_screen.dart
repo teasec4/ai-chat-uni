@@ -18,6 +18,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
+    // Load from local cache first (instant UI on next screen)
+    final chatVM = context.read<ChatViewModel>();
+    await chatVM.loadFromCache();
+
     await Future.wait<void>([
       _loadSessions(),
       Future<void>.delayed(const Duration(seconds: 2)),
@@ -31,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       await context.read<ChatViewModel>().loadSessions();
     } catch (_) {
-      // The main screen can still open and show an empty chat list if the API
+      // The main screen can still open with cached data if the API
       // is temporarily unavailable.
     }
   }
