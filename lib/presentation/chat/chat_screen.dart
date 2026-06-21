@@ -69,7 +69,6 @@ class _ChatScreenState extends State<ChatScreen>
       await context.read<ChatViewModel>().selectThread(threadId);
     } catch (error) {
       if (!mounted) return;
-
       _showError('Could not load chat history', error);
     }
   }
@@ -81,6 +80,23 @@ class _ChatScreenState extends State<ChatScreen>
       if (!mounted) return;
       _showError('Could not send message', error);
     }
+  }
+
+  void _cancelResponse() {
+    context.read<ChatViewModel>().cancelResponse();
+  }
+
+  Future<void> _deleteThread(String id) async {
+    try {
+      await context.read<ChatViewModel>().deleteThread(id);
+    } catch (error) {
+      if (!mounted) return;
+      _showError('Could not delete chat', error);
+    }
+  }
+
+  void _editMessage(int index, String newText) {
+    context.read<ChatViewModel>().editAndResend(index, newText.trim());
   }
 
   void _showError(String message, Object error) {
@@ -141,7 +157,9 @@ class _ChatScreenState extends State<ChatScreen>
       appBar: isBigScreen
           ? null
           : AppBar(
-              backgroundColor: Colors.grey[100],
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerLow,
               leading: Builder(
                 builder: (context) {
                   return IconButton(
@@ -165,6 +183,9 @@ class _ChatScreenState extends State<ChatScreen>
                 onNewThread: () {
                   _createThread(closeDrawer: true);
                 },
+                onDeleteThread: (threadId) {
+                  _deleteThread(threadId);
+                },
                 onSettingsPressed: () {
                   Navigator.of(context).pop();
                   _toggleSettings();
@@ -187,6 +208,7 @@ class _ChatScreenState extends State<ChatScreen>
                   selectedThreadId: chatVM.selectedThreadId,
                   onThreadSelected: _selectThread,
                   onNewThread: _createThread,
+                  onDeleteThread: _deleteThread,
                   onSettingsPressed: _toggleSettings,
                   onToggleCollapsed: () {
                     setState(() {
@@ -200,7 +222,9 @@ class _ChatScreenState extends State<ChatScreen>
                   isLoadingMessages: chatVM.isLoadingMessages,
                   isWaitingForResponse: chatVM.isWaitingForResponse,
                   onCreateThread: _createThread,
+                  onCancelResponse: _cancelResponse,
                   onSendMessage: _sendMessage,
+                  onEditMessage: _editMessage,
                 ),
               ),
             ],

@@ -6,6 +6,7 @@ class ChatSidebar extends StatelessWidget {
   final String? selectedThreadId;
   final ValueChanged<String> onThreadSelected;
   final VoidCallback onNewThread;
+  final ValueChanged<String> onDeleteThread;
   final VoidCallback onSettingsPressed;
   final double? width;
   final bool isCollapsed;
@@ -17,6 +18,7 @@ class ChatSidebar extends StatelessWidget {
     required this.selectedThreadId,
     required this.onThreadSelected,
     required this.onNewThread,
+    required this.onDeleteThread,
     required this.onSettingsPressed,
     this.width,
     this.isCollapsed = false,
@@ -47,7 +49,7 @@ class ChatSidebar extends StatelessWidget {
           );
 
     final content = ColoredBox(
-      color: const Color(0xFFF3F4F6),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: SafeArea(
         child: Column(
           children: [
@@ -73,7 +75,6 @@ class ChatSidebar extends StatelessWidget {
                 children: _buildThreadSections(context),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
               child: _SidebarAction(
@@ -113,6 +114,7 @@ class ChatSidebar extends StatelessWidget {
             thread: thread,
             isSelected: thread.id == selectedThreadId,
             onTap: () => onThreadSelected(thread.id),
+            onDelete: () => onDeleteThread(thread.id),
           ),
       ],
     ];
@@ -128,7 +130,6 @@ class _SidebarFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (width == null) return child;
-
     return SizedBox(width: width, child: child);
   }
 }
@@ -147,7 +148,7 @@ class _CollapsedSidebarContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFFF3F4F6),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: SafeArea(
         child: Column(
           children: [
@@ -195,11 +196,13 @@ class _ChatThreadTile extends StatelessWidget {
   final ChatThread thread;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   const _ChatThreadTile({
     required this.thread,
     required this.isSelected,
     required this.onTap,
+    required this.onDelete,
   });
 
   @override
@@ -208,50 +211,90 @@ class _ChatThreadTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
-      child: Material(
-        color: isSelected ? const Color(0xFFE4E7EF) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onTap,
+      child: Dismissible(
+        key: ValueKey(thread.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: Colors.red[600],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.delete, color: Colors.white, size: 20),
+        ),
+        confirmDismiss: (direction) async {
+          return await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete chat?'),
+                  content: Text('Delete "${thread.title}"?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ) ??
+              false;
+        },
+        onDismissed: (_) => onDelete(),
+        child: Material(
+          color: isSelected ? const Color(0xFFE4E7EF) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            child: Row(
-              children: [
-                Icon(Icons.chat_bubble_outline, size: 18, color: foreground),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        thread.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: foreground,
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              child: Row(
+                children: [
+                  Icon(Icons.chat_bubble_outline, size: 18, color: foreground),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          thread.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        thread.preview,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          thread.preview,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  thread.updatedLabel,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    thread.updatedLabel,
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

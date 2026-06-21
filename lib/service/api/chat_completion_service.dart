@@ -85,12 +85,22 @@ class ChatMessageResponse {
 
 class ChatCompletionService {
   final String baseUrl;
-  final http.Client _client;
+  http.Client _client;
 
   ChatCompletionService({
     this.baseUrl = 'http://127.0.0.1:8080',
     http.Client? client,
   }) : _client = client ?? http.Client();
+
+  /// Cancels all in-flight requests. Safe to call when idle.
+  void cancel() {
+    _client.close();
+    _client = http.Client();
+  }
+
+  void close() {
+    _client.close();
+  }
 
   Future<ChatCompletionResponse> complete(ChatCompletion chatCompletion) async {
     try {

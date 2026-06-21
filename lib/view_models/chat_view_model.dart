@@ -54,7 +54,7 @@ class ChatThread {
   factory ChatThread.fromSession(ChatSessionResponse session) {
     return ChatThread(
       id: session.sessionId,
-      title: 'Chat ${_shortSessionId(session.sessionId)}',
+      title: 'New chat',
       preview: session.messageCount == 0
           ? 'No messages yet.'
           : '${session.messageCount} messages',
@@ -170,6 +170,21 @@ class ChatViewModel extends ChangeNotifier {
       final sessions = await _chatCompletionService.getSessions();
       final loadedThreads = sessions.map(ChatThread.fromSession).toList();
 
+      // Preserve locally-stored titles when merging with API data
+      for (final loaded in loadedThreads) {
+        final cached = _threads.cast<ChatThread?>().firstWhere(
+          (t) => t?.id == loaded.id,
+          orElse: () => null,
+        );
+        if (cached != null && cached.title != 'New chat') {
+          final idx = loadedThreads.indexWhere((t) => t.id == loaded.id);
+          loadedThreads[idx] = loaded.copyWith(
+            title: cached.title,
+            preview: cached.preview,
+          );
+        }
+      }
+
       _threads
         ..clear()
         ..addAll(loadedThreads);
@@ -227,7 +242,7 @@ class ChatViewModel extends ChangeNotifier {
         final chatMessages = messages.map(ChatMessage.fromResponse).toList();
         final preview = chatMessages.isEmpty
             ? 'No messages yet.'
-            : chatMessages.last.text;
+            : _trimPreview(chatMessages.last.text);
 
         _threads[index] = _threads[index].copyWith(
           preview: preview,
@@ -239,7 +254,6 @@ class ChatViewModel extends ChangeNotifier {
           threadId,
           _toSavedMessages(threadId, chatMessages),
         );
-        // Update thread preview in Isar too
         await _persistThreadAtIndex(index);
       }
 
@@ -289,8 +303,11 @@ class ChatViewModel extends ChangeNotifier {
       text: messageText,
     );
 
+    // Auto-title: use first user message as chat title
+    final needsTitle = _threads[threadIndex].title == 'New chat';
+
     _threads[threadIndex] = _threads[threadIndex].copyWith(
-      preview: messageText,
+      preview: _trimPreview(messageText),
       updatedLabel: 'Now',
       messages: [..._threads[threadIndex].messages, userMessage],
     );
@@ -320,8 +337,12 @@ class ChatViewModel extends ChangeNotifier {
           text: response.answer,
         );
 
+        final preview = _trimPreview(response.answer);
+        final title = needsTitle ? _makeTitle(messageText) : null;
+
         _threads[updatedThreadIndex] = _threads[updatedThreadIndex].copyWith(
-          preview: response.answer,
+          title: title ?? _threads[updatedThreadIndex].title,
+          preview: preview,
           updatedLabel: 'Now',
           messages: [
             ..._threads[updatedThreadIndex].messages,
@@ -340,10 +361,68 @@ class ChatViewModel extends ChangeNotifier {
     } catch (e) {
       _waitingThreadIds.remove(threadId);
       _isSendingMessage = false;
-      _errorMessage = e.toString();
+
+      // Don't treat cancellation as an error
+      if (!_isCancellationError(e)) {
+        _errorMessage = e.toString();
+      }
       notifyListeners();
       rethrow;
     }
+  }
+
+  // ── Edit + resend ───────────────────────────────────────────
+
+  Future<void> editAndResend(int messageIndex, String newText) async {
+    final threadId = _selectedThreadId;
+    if (threadId == null) return;
+
+    final index = _threads.indexWhere((thread) => thread.id == threadId);
+    if (index == -1) return;
+
+    final thread = _threads[index];
+    if (messageIndex < 0 || messageIndex >= thread.messages.length) return;
+
+    // Truncate to before the edited message, replace it
+    final truncated = thread.messages.sublist(0, messageIndex);
+    truncated.add(ChatMessage(role: ChatMessageRole.user, text: newText));
+
+    _threads[index] = thread.copyWith(messages: truncated);
+    notifyListeners();
+
+    // Resend the edited message
+    await sendMessage(newText);
+  }
+
+  // ── Cancel ──────────────────────────────────────────────────
+
+  void cancelResponse() {
+    if (_waitingThreadIds.isEmpty) return;
+
+    _chatCompletionService.cancel();
+    _waitingThreadIds.clear();
+    _isSendingMessage = false;
+    notifyListeners();
+  }
+
+  // ── Delete ──────────────────────────────────────────────────
+
+  Future<void> deleteThread(String id) async {
+    final index = _threads.indexWhere((thread) => thread.id == id);
+    if (index == -1) return;
+
+    _threads.removeAt(index);
+
+    if (_selectedThreadId == id) {
+      _selectedThreadId = null;
+      _currentSessionId = null;
+    }
+
+    notifyListeners();
+
+    try {
+      await _isarService.deleteSession(id);
+    } catch (_) {}
   }
 
   // ── Helpers ─────────────────────────────────────────────────
@@ -402,7 +481,7 @@ class ChatViewModel extends ChangeNotifier {
     final chatMessages = cachedMessages.map(ChatMessage.fromSaved).toList();
     final preview = chatMessages.isEmpty
         ? 'No messages yet.'
-        : chatMessages.last.text;
+        : _trimPreview(chatMessages.last.text);
 
     _threads[index] = _threads[index].copyWith(
       preview: preview,
@@ -459,10 +538,7 @@ class ChatViewModel extends ChangeNotifier {
   }
 }
 
-String _shortSessionId(String sessionId) {
-  if (sessionId.length <= 8) return sessionId;
-  return sessionId.substring(0, 8);
-}
+// ── Utilities ───────────────────────────────────────────────────
 
 String _formatUpdatedLabel(String? rawDate) {
   if (rawDate == null || rawDate.isEmpty) return 'Now';
@@ -496,4 +572,27 @@ ChatMessageRole _roleFromApi(String role) {
   }
 
   return ChatMessageRole.user;
+}
+
+/// Strip markdown to a single plain-text line for sidebar previews.
+String _trimPreview(String text) {
+  final cleaned = text
+      .replaceAll(RegExp(r'```[\s\S]*?```'), '[code]')
+      .replaceAll(RegExp(r'[*_~`>#\[\]]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return cleaned.length > 100 ? '${cleaned.substring(0, 97)}...' : cleaned;
+}
+
+/// First line of the first user message, capped at 40 chars.
+String _makeTitle(String text) {
+  final line = text.split('\n').first.trim();
+  return line.length > 40 ? '${line.substring(0, 37)}...' : line;
+}
+
+bool _isCancellationError(Object e) {
+  final msg = e.toString().toLowerCase();
+  return msg.contains('cancel') ||
+      msg.contains('closed') ||
+      msg.contains('connection closed');
 }
