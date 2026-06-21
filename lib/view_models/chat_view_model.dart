@@ -1,7 +1,7 @@
 import 'package:chatgptclone/data/isar_service.dart';
 import 'package:chatgptclone/data/models/saved_message.dart';
 import 'package:chatgptclone/data/models/saved_session.dart';
-import 'package:chatgptclone/service/api/chat_complain_service.dart';
+import 'package:chatgptclone/service/api/chat_completion_service.dart';
 import 'package:flutter/foundation.dart';
 
 enum ChatMessageRole { user, assistant }
@@ -255,18 +255,12 @@ class ChatViewModel extends ChangeNotifier {
 
   Future<void> createThread() async {
     final session = await _chatCompletionService.createChat();
-    final threadId = session.sessionId;
 
     try {
-      await loadSessions(selectedThreadId: threadId);
+      await loadSessions(selectedThreadId: session.sessionId);
     } catch (_) {
       _insertThreadIfMissing(ChatThread.fromSession(session));
-      return;
     }
-
-    if (_threads.any((thread) => thread.id == threadId)) return;
-
-    _insertThreadIfMissing(ChatThread.fromSession(session));
   }
 
   Future<void> sendMessage(String text) async {
@@ -313,7 +307,7 @@ class ChatViewModel extends ChangeNotifier {
       _selectedThreadId = response.sessionId;
 
       if (response.sessionId != threadId) {
-        _moveThreadId(from: threadId, to: response.sessionId);
+        await _moveThreadId(from: threadId, to: response.sessionId);
       }
 
       final responseThreadId = response.sessionId;
@@ -335,15 +329,8 @@ class ChatViewModel extends ChangeNotifier {
           ],
         );
 
-        // Persist full conversation to Isar
-        await _isarService.saveMessages(
-          responseThreadId,
-          _toSavedMessages(
-            responseThreadId,
-            _threads[updatedThreadIndex].messages,
-          ),
-        );
-        await _persistThreadAtIndex(updatedThreadIndex);
+        // Persist full conversation to Isar (best-effort, don't break the UI)
+        _persistConversation(responseThreadId, updatedThreadIndex);
       }
 
       _waitingThreadIds.remove(threadId);
@@ -370,7 +357,7 @@ class ChatViewModel extends ChangeNotifier {
     return session.sessionId;
   }
 
-  void _moveThreadId({required String from, required String to}) {
+  Future<void> _moveThreadId({required String from, required String to}) async {
     if (from == to) return;
 
     final existingIndex = _threads.indexWhere((thread) => thread.id == from);
@@ -385,6 +372,14 @@ class ChatViewModel extends ChangeNotifier {
       updatedLabel: existingThread.updatedLabel,
       messages: existingThread.messages,
     );
+
+    // Persist new id, clean up old record in Isar
+    try {
+      await _persistThreadAtIndex(existingIndex);
+      await _isarService.deleteSession(from);
+    } catch (_) {
+      // Best-effort: UI state is already correct
+    }
   }
 
   void _insertThreadIfMissing(ChatThread thread) {
@@ -424,6 +419,19 @@ class ChatViewModel extends ChangeNotifier {
   Future<void> _persistThreadAtIndex(int index) async {
     if (index < 0 || index >= _threads.length) return;
     await _isarService.saveSession(_toSavedSession(_threads[index]));
+  }
+
+  void _persistConversation(String sessionId, int threadIndex) {
+    // Fire-and-forget: Isar errors must not surface to the user
+    Future.microtask(() async {
+      try {
+        await _isarService.saveMessages(
+          sessionId,
+          _toSavedMessages(sessionId, _threads[threadIndex].messages),
+        );
+        await _persistThreadAtIndex(threadIndex);
+      } catch (_) {}
+    });
   }
 
   SavedSession _toSavedSession(ChatThread thread) {

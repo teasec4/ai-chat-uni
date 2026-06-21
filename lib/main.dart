@@ -1,6 +1,6 @@
 import 'package:chatgptclone/data/isar_service.dart';
 import 'package:chatgptclone/router/app_router.dart';
-import 'package:chatgptclone/service/api/chat_complain_service.dart';
+import 'package:chatgptclone/service/api/chat_completion_service.dart';
 import 'package:chatgptclone/view_models/chat_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
